@@ -53,6 +53,10 @@ cost_rmb = %s,
 pass_md5 = "%s"
 WHERE id = %s
 '''
+    IS_STRING_EXIST = '''
+    SELECT id_string FROM db_drinking_man.drinks 
+WHERE id_string = "%s"
+'''
     def __init__(self):
         #connect to DB
         print("connect to DB")
@@ -63,10 +67,16 @@ WHERE id = %s
         self.context.close()
         
     def insert(self, dict):
-        cursor = self.context.cursor()
-        cursor.execute(self.ADD_DRINK, dict)
-        self.context.commit()
-        cursor.close()
+        ''' insert may raise exception because of duplicate id_string '''
+        try:
+            cursor = self.context.cursor()
+            cursor.execute(self.ADD_DRINK, dict)
+            self.context.commit()
+            cursor.close()
+            return True
+        except mysql.connector.errors.IntegrityError:
+            return False
+        
     
     def update(self, dict):
         cursor = self.context.cursor()
@@ -106,6 +116,19 @@ WHERE id = %s
         res = None
         for turp in cursor:
             res =  self.turple2dict(turp)
+            break
+        cursor.close()
+        return res
+    
+    def isIdStringExist(self, id_string):
+        ''' check if id_string exist '''
+        cursor = self.context.cursor()
+        cursor.execute(self.IS_STRING_EXIST, (id_string,)) 
+        res = False
+        print "dsf"
+        for tp in cursor:
+            print "ds"
+            res = True
             break
         cursor.close()
         return res
@@ -160,4 +183,8 @@ if __name__ == "__main__":
         drink["id_string"] = "id_string_%s" % (i,)
         #db.insert(drink)
     '''
+    #db.insert(drink)
+    #db.insert(drink)
+    print db.getById(1)
+    print db.isIdStringExist("my_id_string")
     del db
