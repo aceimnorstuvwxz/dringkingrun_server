@@ -1,6 +1,7 @@
 import mysql.connector
-from twisted.protocols.ftp import CNX_CLOSED_TXFR_ABORTED
-
+'''
+(C)2015 chenbingfeng@TurnroGame.com
+'''
 
 class Dmdb:
     """ DB operation of drinking running server"""
@@ -43,19 +44,18 @@ FROM `db_drinking_man`.`drinks` ORDER BY score DESC LIMIT %s,%s
     
     UPDATE = '''
     UPDATE `db_drinking_man`.`drinks` 
-SET id_string = "%s",
-name = "%s",
-image = "%s",
+SET id_string = %s,
+name = %s,
+image = %s,
 score = %s,
 gold = %s,
-config = "%s",
+config = %s,
 cost_rmb = %s,
-pass_md5 = "%s"
+pass_md5 = %s
 WHERE id = %s
 '''
     IS_STRING_EXIST = '''
-    SELECT id_string FROM db_drinking_man.drinks 
-WHERE id_string = "%s"
+    SELECT id_string, name FROM db_drinking_man.drinks WHERE id_string = %s
 '''
     def __init__(self):
         #connect to DB
@@ -125,9 +125,7 @@ WHERE id_string = "%s"
         cursor = self.context.cursor()
         cursor.execute(self.IS_STRING_EXIST, (id_string,)) 
         res = False
-        print "dsf"
         for tp in cursor:
-            print "ds"
             res = True
             break
         cursor.close()
@@ -185,6 +183,12 @@ if __name__ == "__main__":
     '''
     #db.insert(drink)
     #db.insert(drink)
-    print db.getById(1)
-    print db.isIdStringExist("my_id_string")
+    #print db.getById(1)
+#     print db.isIdStringExist("my_id_string")
+#     a = db.getById(1)
+#     print a
+#     a["name"] = "abc"
+#     print a
+#     db.update(a)
+#     print db.getById(1)
     del db
