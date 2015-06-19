@@ -28,6 +28,11 @@ VALUES
     SELECT id, id_string, name, image, score, gold, config, cost_rmb, pass_md5 
 FROM `db_drinking_man`.`drinks` WHERE id=%s
 '''
+    SELECT_BY_ID_STR = '''
+    SELECT id, id_string, name, image, score, gold, config, cost_rmb, pass_md5 
+FROM `db_drinking_man`.`drinks` WHERE id_string=%s
+'''
+
     SELECT_TOP_3 = '''
     SELECT id, id_string, name, image, score, gold, config, cost_rmb, pass_md5 
 FROM `db_drinking_man`.`drinks` ORDER BY score DESC LIMIT 0,3
@@ -113,6 +118,16 @@ WHERE id = %s
         ''' get data by Id, if not exist, return None '''
         cursor = self.context.cursor()
         cursor.execute(self.SELECT_BY_ID, (id,))
+        res = None
+        for turp in cursor:
+            res =  self.turple2dict(turp)
+            break
+        cursor.close()
+        return res
+
+    def getByIdstring(self, id_string):
+        cursor = self.context.cursor()
+        cursor.execute(self.SELECT_BY_ID_STR, (id_string,))
         res = None
         for turp in cursor:
             res =  self.turple2dict(turp)
