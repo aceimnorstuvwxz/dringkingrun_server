@@ -8,6 +8,8 @@ import random
 import hashlib
 
 MDB = Dmdb()
+token_map = {}
+random.seed()
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -36,6 +38,11 @@ class TRBaseHandler(tornado.web.RequestHandler):
         jstr = '''{"err_code":%s,"err_msg":%s}''' % (error_code, error_msg)
         self.tr_write(jstr)
         
+def trmd5(data):
+    m5 = hashlib.md5()
+    m5.update(data)
+    return m5.hexdigest()
+
 class NewAcctHandler(TRBaseHandler):
     def get(self):
         data = self.tr_read()
@@ -46,13 +53,9 @@ class NewAcctHandler(TRBaseHandler):
             self.tr_error(1, "id_string exists")
             return
         else:
-            random.seed()
             passinter = id_string
             passinter = passinter + str(random.randint(100,1000))
-            m5 = hashlib.md5()
-            m5.update(passinter)
-            pwd = m5.hexdigest()
-            pwd = pwd[:16]
+            pwd = trmd5(passinter)[:16]
             print passinter, pwd
 
             dict = {}
@@ -72,12 +75,38 @@ class NewAcctHandler(TRBaseHandler):
             else:
                 self.tr_error(2, "internal error 001")
                 return
-        
+
+def genToken():
+    raw = "raw"
+    for i in xrange(10):
+        raw += str(random.randint(100,999))
+    token = trmd5(raw)[:32]
+    return token
+
+def genNextSN():
+    return random.randint(0,9999)
+
+class LoginHandler(TRBaseHandler):
+    def get(self):
+        data = self.tr_read()
+        jobj = json.loads(data)
+        id = jobj["id"]
+        pwd = jobj["pwd"]
+        record = MDB.getById(id) 
+        if record != None and record["pass_md5"] == pwd:
+            tk = genToken()
+            sn = genNextSN()
+            token_map[id] = (tk, sn)
+            ret = '''{"tk":"%s", "sn":%s}''' % (tk, sn)
+            self.tr_write(ret)
+        else:
+            self.tr_error(3, "account error")
         
         
 application = tornado.web.Application([
     (r"/", MainHandler),
     (r"/newAccount", NewAcctHandler),
+    (r"/login", LoginHandler),
 ])
 
 
