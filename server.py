@@ -83,8 +83,14 @@ def genToken():
     token = trmd5(raw)[:32]
     return token
 
-def genNextSN():
-    return random.randint(0,9999)
+def genInitSN():
+    return random.randint(0,999)
+    
+def genNextSN(old):
+    newSn = old+1
+    if newSn >= 10000:
+        newSn = 0
+    return newSn
 
 class LoginHandler(TRBaseHandler):
     def get(self):
@@ -95,20 +101,125 @@ class LoginHandler(TRBaseHandler):
         record = MDB.getById(id) 
         if record != None and record["pass_md5"] == pwd:
             tk = genToken()
-            sn = genNextSN()
+            sn = genInitSN()
             token_map[id] = (tk, sn)
-            ret = '''{"tk":"%s", "sn":%s}''' % (tk, sn)
+            ret = '''{"tk":"%s", "sn":%s, "err_code":0}''' % (tk, sn)
             self.tr_write(ret)
         else:
             self.tr_error(3, "account error")
         
+def checkAuth(id, tk, sn):
+    tp = token_map[id]
+    tp[1] = genNextSN(tp[1])
+    token_map[id] = tp
+    #todo check auth
+    return True
+
+class GetScoreHandler(TRBaseHandler):
+    def get(self):
+        try:
+            data = self.tr_read()
+            jobj = json.loads(data)
+            print jobj
+            targetId = jobj["target"]
+            record = MDB.getById(targetId)
+            if record != None:
+                targetScore = record["score"]
+                ret = '''{"target":%s, "score":%s, "err_code":0}''' % (targetId, targetScore)
+                self.tr_write(ret)
+            else:
+                self.tr_error(4, "get score fail")
+        except KeyError:
+            self.tr_error(2, "internal error")
+
+class UpdateScoreHandler(TRBaseHandler):
+    def get(self):
+        data = self.tr_read()
+        jobj = json.loads(data)
+        '''todo, auth check'''
+        newScore = jobj["score"]
+        id = jobj["id"]
+        record = MDB.getById(id)
+        if record != None:
+            isNew = record["score"] < newScore
+            if isNew:
+                record["score"] = newScore
+                MDB.update(record)
+                isNew = 1
+            else:
+                isNew = 0
+            ret = '''{"is_new":%s, "err_code":0}''' % (isNew)
+            self.tr_write(ret)
+        else:
+            self.tr_error(5, "db has no record of id %s"%id)
+
+class GetImageHandler(TRBaseHandler):
+    def get(self):
+        #TODO cau
+        data = self.tr_read()
+        jobj = json.loads(data)
+        targetId = jobj["target"]
+        record = MDB.getById(targetId)
+        if record != None:
+            ret = '''{"img":"%s", "err_code":0}''' % (record["image"],)
+            self.tr_write(ret)
+        else:
+            self.tr_error(6, "no id")
         
+class UploadImage(TRBaseHandler):
+    def post(self):
+        #todo cau
+        data = self.tr_read()
+        jobj = json.loads(data)
+        image = jobj["img"]
+        id = jobj["id"]
+        record = MDB.getById(id)
+        record["image"] = image
+        MDB.update(record)
+        ret = '''{"err_code":0}'''
+        self.tr_write(ret)
+        
+def recordList2jsonRet(list):
+    dpr = []
+    for r in list:
+        d = {}
+        d["id"] = r["id"]
+        d["score"] = r["score"]
+        d["image"] = r["image"]
+        dpr.append(d)
+    retd = {}
+    retd["err_code"] = 0
+    retd["data"] = dpr
+    ret = json.dumps(retd)
+    return ret    
+
+class GetTop3(TRBaseHandler):
+    def get(self):
+        data = self.tr_read()
+        #cau
+        list = MDB.getTopScore3()
+        ret = recordList2jsonRet(list)
+        self.tr_write(ret)
+
+class GetNear6ByScore(TRBaseHandler):        
+    def get(self):
+        data = self.tr_read()
+        #cau
+        jobj = json.loads(data)
+        score = jobj["score"]
+        list = MDB.getNear6ByScore(score)
+        ret = recordList2jsonRet(list)
+        self.tr_write(ret)
+
 application = tornado.web.Application([
     (r"/", MainHandler),
     (r"/newAccount", NewAcctHandler),
     (r"/login", LoginHandler),
+    (r"/getScore", GetScoreHandler),
+    (r"/updateScore", UpdateScoreHandler),
+    (r"/getTop3", GetTop3),
+    (r"/getNear6", GetNear6ByScore),
 ])
-
 
 
 if __name__ == "__main__":

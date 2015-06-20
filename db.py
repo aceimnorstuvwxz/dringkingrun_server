@@ -85,6 +85,7 @@ WHERE id = %s
     
     def update(self, dict):
         cursor = self.context.cursor()
+        print dict
         cursor.execute(self.UPDATE, (
                        dict["id_string"],
                        dict["name"],
@@ -97,6 +98,7 @@ WHERE id = %s
                        dict["id"]
                        ))
         cursor.close()
+        self.context.commit()
         
     def turple2dict(self, turp):
         if (turp == None):
