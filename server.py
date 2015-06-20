@@ -169,17 +169,27 @@ class GetImageHandler(TRBaseHandler):
         else:
             self.tr_error(6, "no id")
         
-class UploadImage(TRBaseHandler):
+class UploadImageHandler(TRBaseHandler):
     def post(self):
         #todo cau
         data = self.tr_read()
         jobj = json.loads(data)
-        image = jobj["img"]
+        image = jobj["image"]
         id = jobj["id"]
         record = MDB.getById(id)
         record["image"] = image
         MDB.update(record)
         ret = '''{"err_code":0}'''
+        self.tr_write(ret)
+        
+class GetDataHandler(TRBaseHandler):
+    def post(self):
+        data = self.tr_read()
+        jobjs = json.loads(data)
+        record = MDB.getById(jobjs["id"])
+        record["err_code"] = 0
+        del record["pass_md5"]
+        ret = json.dumps(record)
         self.tr_write(ret)
         
 def recordList2jsonRet(list):
@@ -222,6 +232,8 @@ application = tornado.web.Application([
     (r"/updateScore", UpdateScoreHandler),
     (r"/getTop3", GetTop3),
     (r"/getNear6", GetNear6ByScore),
+    (r"/uploadImage", UploadImageHandler),
+    (r"/getData", GetDataHandler),
 ])
 
 

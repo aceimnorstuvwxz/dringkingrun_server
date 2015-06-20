@@ -83,9 +83,35 @@ class Client:
             isNew = jobj["is_new"] == 1
             print "updateScore", isNew
     
-    
-            
+    def uploadImage(self, path):
+        with open(path, 'rb') as f:
+            data = f.read()
         
+        data = base64.encodestring(data)
+        print data
+        data = urllib.quote_plus(data)
+        print data
+        req = self.baseReq()
+        req["image"] = data
+        req = encrypt(json.dumps(req))
+        ret = requests.post(self.SERVER_URL%("uploadImage",), {"p":req})
+        jobj = json.loads(decrypt(ret.text))
+        if checkErrCode(jobj):
+            print "uploadImage ok"
+            
+    def getData(self):
+        req = self.baseReq()
+        req = encrypt(json.dumps(req))
+        ret = requests.post(self.SERVER_URL%("getData",), {"p":req})
+        jobj = json.loads(decrypt(ret.text))
+        if checkErrCode(jobj):
+            fn = "dtx/tx_id_" + str(self.id) +".jpg"
+            print jobj["image"]
+            print urllib.unquote_plus(jobj["image"])
+            data = base64.decodestring(urllib.unquote_plus(jobj["image"]))
+            with open(fn, 'wr') as f:
+                f.write(data)
+            print "getData ok"
         
 random.seed()
 
@@ -94,3 +120,6 @@ if __name__ == "__main__":
     cl.newAcct("gfhghfghjkhhkjn"+str(random.randint(0,99999)))
     cl.login()
     cl.updateScore(random.randint(0, 99999))
+    cl.uploadImage("tx/tx1.jpg")
+    cl.getData()
+    
