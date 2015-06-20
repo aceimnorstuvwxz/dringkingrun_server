@@ -6,6 +6,7 @@ import base64
 import json
 import random
 import hashlib
+import urllib
 
 MDB = Dmdb()
 token_map = {}
@@ -19,6 +20,7 @@ class MainHandler(tornado.web.RequestHandler):
 class TRBaseHandler(tornado.web.RequestHandler):
     def tr_read(self):
         b64 = self.get_argument("p", "")
+        b64 = urllib.unquote_plus(b64)
         obj = AES.new('01234567890123456789012345678901', AES.MODE_CBC, '0123456789012345')
         enc = base64.decodestring(b64)
         dst = obj.decrypt(enc)
@@ -31,11 +33,12 @@ class TRBaseHandler(tornado.web.RequestHandler):
         obj = AES.new('01234567890123456789012345678901', AES.MODE_CBC, '0123456789012345')
         enc = obj.encrypt(data)
         b64 = base64.encodestring(enc)
+        b64 = urllib.quote_plus(b64)
         self.write(b64)
         print "Base write", data
 
     def tr_error(self, error_code, error_msg):
-        jstr = '''{"err_code":%s,"err_msg":%s}''' % (error_code, error_msg)
+        jstr = '''{"err_code":%s,"err_msg":"%s"}''' % (error_code, error_msg)
         self.tr_write(jstr)
         
 def trmd5(data):
@@ -44,7 +47,7 @@ def trmd5(data):
     return m5.hexdigest()
 
 class NewAcctHandler(TRBaseHandler):
-    def get(self):
+    def post(self):
         data = self.tr_read()
         jobj = json.loads(data)
         id_string = jobj["id_string"]
@@ -69,7 +72,7 @@ class NewAcctHandler(TRBaseHandler):
             dict["pass_md5"] = pwd 
             if MDB.insert(dict):
                 id = MDB.getByIdstring(id_string)["id"]
-                ret = '''{id":%s, "pwd":"%s", "err_code":0}''' % (id, pwd)
+                ret = '''{"id":%s, "pwd":"%s", "err_code":0}''' % (id, pwd)
                 self.tr_write(ret)
                 return
             else:
@@ -93,7 +96,7 @@ def genNextSN(old):
     return newSn
 
 class LoginHandler(TRBaseHandler):
-    def get(self):
+    def post(self):
         data = self.tr_read()
         jobj = json.loads(data)
         id = jobj["id"]
@@ -116,7 +119,7 @@ def checkAuth(id, tk, sn):
     return True
 
 class GetScoreHandler(TRBaseHandler):
-    def get(self):
+    def post(self):
         try:
             data = self.tr_read()
             jobj = json.loads(data)
@@ -133,7 +136,7 @@ class GetScoreHandler(TRBaseHandler):
             self.tr_error(2, "internal error")
 
 class UpdateScoreHandler(TRBaseHandler):
-    def get(self):
+    def post(self):
         data = self.tr_read()
         jobj = json.loads(data)
         '''todo, auth check'''
@@ -154,7 +157,7 @@ class UpdateScoreHandler(TRBaseHandler):
             self.tr_error(5, "db has no record of id %s"%id)
 
 class GetImageHandler(TRBaseHandler):
-    def get(self):
+    def post(self):
         #TODO cau
         data = self.tr_read()
         jobj = json.loads(data)
@@ -194,7 +197,7 @@ def recordList2jsonRet(list):
     return ret    
 
 class GetTop3(TRBaseHandler):
-    def get(self):
+    def post(self):
         data = self.tr_read()
         #cau
         list = MDB.getTopScore3()
@@ -202,7 +205,7 @@ class GetTop3(TRBaseHandler):
         self.tr_write(ret)
 
 class GetNear6ByScore(TRBaseHandler):        
-    def get(self):
+    def post(self):
         data = self.tr_read()
         #cau
         jobj = json.loads(data)
