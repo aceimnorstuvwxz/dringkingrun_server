@@ -16,13 +16,21 @@ random.seed()
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("hello world")
-        
+    
+    def post(self):
+        ret = '''{"data":"hello world"}'''
+        print self.get_argument("p"), "test"
+        self.write(ret)
+
 class TRBaseHandler(tornado.web.RequestHandler):
     def tr_read(self):
-        b64 = self.get_argument("p", "")
-        b64 = urllib.unquote_plus(b64)
+        ulc = self.get_argument("p", "")
+        b64 = ulc#urllib.unquote_plus(ulc)#remove urlencode/decode
         obj = AES.new('01234567890123456789012345678901', AES.MODE_CBC, '0123456789012345')
         enc = base64.decodestring(b64)
+        print ulc
+        print b64
+        print enc
         dst = obj.decrypt(enc)
         print "Base read", dst
         return dst
@@ -33,9 +41,10 @@ class TRBaseHandler(tornado.web.RequestHandler):
         obj = AES.new('01234567890123456789012345678901', AES.MODE_CBC, '0123456789012345')
         enc = obj.encrypt(data)
         b64 = base64.encodestring(enc)
-        b64 = urllib.quote_plus(b64)
+        #b64 = urllib.quote_plus(b64) #remove url en/de
         self.write(b64)
         print "Base write", data
+        print b64
 
     def tr_error(self, error_code, error_msg):
         jstr = '''{"err_code":%s,"err_msg":"%s"}''' % (error_code, error_msg)
@@ -49,7 +58,9 @@ def trmd5(data):
 class NewAcctHandler(TRBaseHandler):
     def post(self):
         data = self.tr_read()
+        print data
         jobj = json.loads(data)
+        print jobj
         id_string = jobj["id_string"]
         print "incomming id_string = ", id_string
         if MDB.isIdStringExist(id_string):
@@ -225,7 +236,7 @@ class GetNear6ByScore(TRBaseHandler):
         self.tr_write(ret)
 
 application = tornado.web.Application([
-    (r"/", MainHandler),
+    (r"/test", MainHandler),
     (r"/newAccount", NewAcctHandler),
     (r"/login", LoginHandler),
     (r"/getScore", GetScoreHandler),

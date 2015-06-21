@@ -12,10 +12,11 @@ def encrypt(msg):
     obj = AES.new('01234567890123456789012345678901', AES.MODE_CBC, '0123456789012345')
     cipherText = obj.encrypt(msg)
     b64 = base64.encodestring(cipherText)
-    return urllib.quote_plus(b64)
+    print b64
+    return b64
     
 def decrypt(msg):
-    b64 = urllib.unquote_plus(msg)
+    b64 = msg
     ciphertext = base64.decodestring(b64)
     #print len(ciphertext)
     obj = AES.new('01234567890123456789012345678901', AES.MODE_CBC, '0123456789012345')
@@ -114,12 +115,13 @@ class Client:
             print "getData ok"
         
 random.seed()
-
 if __name__ == "__main__":
+    print encrypt('''{"err_code":1,"err_msg":"id_string exists"}     ''')
+    '''
     cl = Client()
     cl.newAcct("gfhghfghjkhhkjn"+str(random.randint(0,99999)))
     cl.login()
     cl.updateScore(random.randint(0, 99999))
     cl.uploadImage("tx/tx1.jpg")
     cl.getData()
-    
+    '''
